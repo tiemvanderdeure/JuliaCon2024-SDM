@@ -1,0 +1,97 @@
+---
+title: "Rasters.jl"
+subtitle: "A DimensionalData extension for GeoSpatial data reading, writing and manipulation"
+author:
+  - name: Rafael Schouten
+    orcid:
+    email: rafaelschouten@gmail.com
+    affiliation:
+      - name: Globe Intstitute, Copenhagen University
+      - department: Section for Biodiversity
+date: "2024-07-10"
+engine: julia
+format:
+  revealjs:
+    incremental: true
+    toc: true
+    toc-depth: 2
+    slide-number: true
+    overview: true
+    code-line-numbers: false
+execute:
+    echo: true
+---
+
+## Read/Write Backends
+
+- Netcdf/hdf5
+- GeoTIFF and other GDAL compatible formats
+- Gribb (read only)
+- Zarr (nearly done!)
+- R grd (simple mmapped data from R)
+
+## Backend detection
+
+```julia
+# Single array
+rast = Raster("myrasterfile.ext")
+
+# Multi-array
+st = RasterStack("myrasterstack.ext")
+
+# Series of rasters or stacks may be detectable from folders
+st = RasterSeries("myrasterfolder", Ti(DateTime))
+```
+
+## Lazy loading: DiskArrays
+
+- `lazy=true` keyword in constructors
+- Loads dimension names, lookups and other metadata up front
+- Load spatial data only when:
+  - `getindex` is used
+  - `read` is called explicitly
+- All broadcasts and other base operations are lazy wrappers
+- Specify `chunks=(256, 256)` or similar in `write` methods to change chunk patterns in files.
+
+## Common raster files and RasterDataSources.jl integration
+
+```{julia}
+ENV["RASTERDATASOURCES_PATH"] = "/home/raf/Data/Raster"
+using Rasters, ArchGDAL, RasterDataSources, CairoMakie
+bioclim5 = Raster(WorldClim{BioClim}, 5);
+```
+
+## Plots.jl
+
+```{julia}
+using Plots
+Plots.plot(bioclim5)
+```
+
+## Makie.jl
+
+```{julia}
+using CairoMakie
+CairoMakie.activate!(type = "png")
+Makie.plot(bioclim5)
+```
+
+## GeoMakie.jl
+
+```{julia}
+using GeoMakie
+fig = Figure();
+ga = GeoAxis(fig[1, 1]; dest="+proj=ortho +lon_0=19 +lat_0=72")
+Makie.heatmap!(ga, bioclim5; colormap=:isoluminant_cgo_70_c39_n256)
+fig
+```
+
+## Common GIS methods
+
+GeoInterface.jl and Extents.jl compatible geometry interop
+
+- rasterize/coverage: native, blazing fast, ~30x GDAL
+- mask: mask rasters with other rasters and GeoInterface.jl compatible geometries
+- extract: native extraction of GeoInterface.jl compatible geoms from rasters as Tables.jl compatible tables
+- trim/crop/extend: resize rasters based on other rasters, missing values
+- resample/warp: using GDAL warp
