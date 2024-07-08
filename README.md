@@ -1,8 +1,8 @@
-# JuliaCon 2024 - AutoDiff talk
+# JuliaCon 2024 - Rasters talk
 
-[![Slides badge](https://img.shields.io/badge/preview-slides-blue)](https://gdalle.github.io/JuliaCon2024-AutoDiff/)
+[![Slides badge](https://img.shields.io/badge/preview-slides-blue)](https://rafaqz.github.io/JuliaCon2024-Rasters/)
 
-Slides for the talk [*Gradients for everyone: a quick guide to autodiff in Julia*](https://pretalx.com/juliacon2024/talk/YGZYWK/) at [JuliaCon 2024](https://juliacon.org/2024/).
+Slides for the talk [*Rasters.jl: raster data and GIS tools for julia*](https://pretalx.com/juliacon2024/talk/WPAKG8/) at [JuliaCon 2024](https://juliacon.org/2024/).
 
 ## Quarto setup
 
