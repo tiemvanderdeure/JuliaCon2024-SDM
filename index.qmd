@@ -25,13 +25,18 @@ execute:
 
 ## Read/Write Backends
 
-- Netcdf/hdf5
-- GeoTIFF and other GDAL compatible formats
-- Gribb (read only)
-- Zarr (PR nearly done!)
-- R grd (simple mmapped data from R)
+File types                      | Package
+------------------------------- | ----------
+Netcdf/hdf5                     | NCDatasets.jl
+Grib (read only)                | GRIBDatasets.jl
+Zarr (PR nearly done!)          | ZarrDatasets.jl
+R grd (simple Mmap data from R) | native
+GeoTIFF and everything else     | ArchGDAL.jl
+
 
 ## Backend detection
+
+From filename extension:
 
 ```julia
 # Single array
@@ -59,20 +64,25 @@ rast = Raster(filename; lazy=true)
 
 Still lazy after broadcasts:
 ```julia
-rast .* 10
+rast10 = rast .* 10
 ```
 
-## Change chunk patterned for more efficient lazy reads:
+Reads from disk only on `getindex`:
+```julia
+rast10[X=100 .. 135, Y=20 .. 40]
+```
+
+Or `read`:
+```julia
+read(rast10)
+```
+
+## Change chunk patterns 
+For more efficient lazy reads:
 \
 ```julia
 write("rechunked.tif", raster; chunks=(256, 256))
 ```
-
-```julia
-
-RasterStack("myrasterstack.ext")
-```
-
 
 ## RasterDataSources.jl integration
 
@@ -84,18 +94,20 @@ ENV["RASTERDATASOURCES_PATH"] = "/home/raf/Data/Raster";
 Load a raster the standard way, from a filename:
 
 ```{julia}
-using Rasters, ArchGDAL, RasterDataSources, CairoMakie
+using Rasters, RasterDataSources, ArchGDAL
 bioclim_filename = RasterDataSources.getraster(WorldClim{BioClim}, 5)
 bioclim5 = Raster(bioclim_filename);
 ```
 \
-Or use RasterDataSources syntax directly:
+Or just use RasterDataSources syntax directly:
 
 ```{julia}
 bioclim_filename = Raster(WorldClim{BioClim}, 5);
 ```
 
 # Plotting
+
+Always the right way up!
 
 ## Plots.jl
 
@@ -127,19 +139,42 @@ Makie.heatmap!(ga, bioclim5; colormap=:isoluminant_cgo_70_c39_n256)
 fig
 ```
 
+
 # Common GIS methods
 
----
+## Native rasterization engine
 
-## `mask`, `trim`
+- accepts all GeoInterface.jl geometries
+- extremely fast + threaded
+  - usually an order of magnitude faster than other packages
+- detailed correctness warnings
+- consistent behaviour and syntax for:
+  - `rasterize`
+  - `coverage`
+  - `mask`
+  - `boolmask`/`missingmask`
+  - `zonal`
+
+## Other common methods
+
+- extract
+- crop/extend
+- trim
+- mosaic
+- aggregate
+- resample
+
+## `mask` + `trim`
 
 ```{julia}
 #| echo: false
-using Rasters, RasterDataSources, ArchGDAL, NaturalEarth, Plots, Dates, DataFrames
 using Rasters: trim
 ```
 
+Mask climate data wth Norway border (from NaturalEarth.jl), and trim:
+
 ```{julia}
+using NaturalEarth, Dates, DataFrames
 countries = DataFrame(naturalearth("ne_10m_admin_0_countries"))
 norway_border = subset(countries, :NAME => ByRow(==("Norway"))).geometry[1]
 climate = RasterStack(WorldClim{Climate}, (:tmin, :tmax, :prec, :wind); month=July)
@@ -153,20 +188,20 @@ Extract climate data at species occurrence points:
 
 ```{julia}
 #| code-overflow: scroll
-using Rasters, GBIF2, RasterDataSources
-records = GBIF2.occurrence_search("Burramys parvus")
-A = RasterStack(WorldClim{BioClim})
-climate = extract(A, records; name=(:bio1, :bio4, :bio7)) |> DataFrame
+using GBIF2
+occurrences = GBIF2.occurrence_search("Burramys parvus")
+climate = RasterStack(WorldClim{BioClim})
+extract(climate, occurrences; name=(:bio1, :bio4, :bio7)) |> DataFrame
 ```
 
 ## `zonal` statistics
-
-Hottest and coldest countries in July:
 
 ```{julia}
 #| echo: false
 using Rasters, RasterDataSources, ArchGDAL, Dates, DataFrames, NaturalEarth, Statistics
 ```
+
+Find the hottest and coldest countries in July:
 
 ```{julia}
 countries = DataFrame(naturalearth("ne_10m_admin_0_countries"))
@@ -174,6 +209,12 @@ clim = Raster(WorldClim{Climate}, :tmax; month=July)
 countries.july_maxtemp = zonal(Statistics.mean, clim; 
     of=countries, boundary=:touches, progress=false
 )
-sort!(subset(countries, :july_maxtemp => ByRow(!isnan)), :july_maxtemp).NAME
+filtered = subset(countries, :july_maxtemp => ByRow(!isnan))
+sort!(filtered, :july_maxtemp).NAME
 ```
 
+# Thanks!
+
+Any problems, make github issues at\https://github.com/rafaqz/Rasters.jl
+\
+But please include all files in a MWE!
