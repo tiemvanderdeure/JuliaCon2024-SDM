@@ -1,6 +1,6 @@
 ---
 title: "Rasters.jl"
-subtitle: "A DimensionalData extension for GeoSpatial data reading, writing and manipulation"
+subtitle: "Geospatial raster data reading, writing and manipulation"
 author:
   - name: Rafael Schouten
     orcid:
@@ -12,7 +12,7 @@ date: "2024-07-10"
 engine: julia
 format:
   revealjs:
-    theme: [serif, style.scss] # beige blood dark default league moon night serif simple sky solarized
+    theme: [simple, style.scss] # beige blood dark default league moon night serif simple sky solarized
     incremental: true
     toc: false
     toc-depth: 2
@@ -55,8 +55,7 @@ For manipulating larger-than-memory data
 
 ## DiskArrays.jl integration  
 
-Loads dimension names, lookups and other metadata up front with
-`lazy=true` keyword in constructors:
+Loads data lazily:
 
 ```julia
 rast = Raster(filename; lazy=true)
@@ -67,7 +66,7 @@ Still lazy after broadcasts:
 rast10 = rast .* 10
 ```
 
-Reads from disk only on `getindex`:
+Reads from disk/network only on `getindex`:
 ```julia
 rast10[X=100 .. 135, Y=20 .. 40]
 ```
@@ -91,7 +90,7 @@ write("rechunked.tif", raster; chunks=(256, 256))
 ENV["RASTERDATASOURCES_PATH"] = "/home/raf/Data/Raster";
 ```
 \
-Load a raster the standard way, from a filename:
+Load a raster from RasterDataSources.jl filename:
 
 ```{julia}
 using Rasters, RasterDataSources, ArchGDAL
@@ -99,7 +98,7 @@ bioclim_filename = RasterDataSources.getraster(WorldClim{BioClim}, 5)
 bioclim5 = Raster(bioclim_filename);
 ```
 \
-Or just use RasterDataSources syntax directly:
+Or use RasterDataSources.jl syntax directly:
 
 ```{julia}
 bioclim_filename = Raster(WorldClim{BioClim}, 5);
@@ -135,7 +134,7 @@ Makie.plot(bioclim5)
 using GeoMakie
 fig = Figure();
 ga = GeoAxis(fig[1, 1]; dest="+proj=ortho +lon_0=19 +lat_0=72")
-Makie.heatmap!(ga, bioclim5; colormap=:isoluminant_cgo_70_c39_n256)
+Makie.heatmap!(ga, bioclim5)
 fig
 ```
 
@@ -146,7 +145,6 @@ fig
 
 - accepts all GeoInterface.jl geometries
 - extremely fast + threaded
-  - usually an order of magnitude faster than other packages
 - detailed correctness warnings
 - consistent behaviour and syntax for:
   - `rasterize`
@@ -164,34 +162,50 @@ fig
 - aggregate
 - resample
 
-## `mask` + `trim`
+# Examples
+\
+```{julia}
+using Rasters
+using ArchGDAL
+using Dates
+using DataFrames
+using GBIF2
+using NaturalEarth
+using RasterDataSources
+```
 
 ```{julia}
 #| echo: false
 using Rasters: trim
 ```
 
-Mask climate data wth Norway border (from NaturalEarth.jl), and trim:
-
-```{julia}
-using NaturalEarth, Dates, DataFrames
-countries = DataFrame(naturalearth("ne_10m_admin_0_countries"))
-norway_border = subset(countries, :NAME => ByRow(==("Norway"))).geometry[1]
-climate = RasterStack(WorldClim{Climate}, (:tmin, :tmax, :prec, :wind); month=July)
-norway_climate = trim(mask(climate; with=norway_border)[Y=0 .. 90]; pad=10)
-Plots.plot(norway_climate; size=(1000, 500))
-```
-
 ## `extract`
 
-Extract climate data at species occurrence points:
+Extract climate data at specific points:
 
 ```{julia}
-#| code-overflow: scroll
-using GBIF2
-occurrences = GBIF2.occurrence_search("Burramys parvus")
-climate = RasterStack(WorldClim{BioClim})
-extract(climate, occurrences; name=(:bio1, :bio4, :bio7)) |> DataFrame
+#| output-location: fragment
+clim = RasterStack(WorldClim{BioClim})
+occ = GBIF2.occurrence_search("Burramys parvus")
+# occ is a table with a `:geometry` column, so this "just works"
+extract(clim, occ; name=(:bio1, :bio4, :bio7)) |> DataFrame
+```
+
+## `mask` + `trim`
+
+Mask climate data wth country border and trim:
+
+---
+code-annotations: hover
+---
+
+```{julia}
+#| output-location: fragment
+clim = RasterStack(WorldClim{Climate}, (:tmin, :tmax, :prec, :wind); month=July)
+countries = naturalearth("ne_10m_admin_0_countries") |> DataFrame
+norway = subset(countries, :NAME => ByRow(==("Norway"))).geometry
+norway_clim = mask(clim; with=norway)[Y=0 .. 90] |> trim
+Plots.plot(norway_clim; size=(800, 400))
 ```
 
 ## `zonal` statistics
@@ -204,8 +218,9 @@ using Rasters, RasterDataSources, ArchGDAL, Dates, DataFrames, NaturalEarth, Sta
 Find the hottest and coldest countries in July:
 
 ```{julia}
-countries = DataFrame(naturalearth("ne_10m_admin_0_countries"))
+#| output-location: fragment
 clim = Raster(WorldClim{Climate}, :tmax; month=July)
+countries = naturalearth("ne_10m_admin_0_countries") |> DataFrame
 countries.july_maxtemp = zonal(Statistics.mean, clim; 
     of=countries, boundary=:touches, progress=false
 )
@@ -215,6 +230,8 @@ sort!(filtered, :july_maxtemp).NAME
 
 # Thanks!
 
-Any problems, make github issues at\https://github.com/rafaqz/Rasters.jl
+Any problems, make github issues at\
+https://github.com/rafaqz/Rasters.jl
 \
-But please include all files in a MWE!
+\
+Please include all files in a MWE!
