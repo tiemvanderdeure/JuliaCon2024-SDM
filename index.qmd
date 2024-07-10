@@ -130,7 +130,9 @@ write("rechunked.tif", mem_rast; chunks=(X(256), Y(256)))
 
 ```{julia}
 #| echo: false
-ENV["RASTERDATASOURCES_PATH"] = "/home/raf/Data/Raster";
+if !haskey(ENV, "RASTERDATASOURCES_PATH")
+    ENV["RASTERDATASOURCES_PATH"] = ".";
+end
 ```
 \
 Load a raster from RasterDataSources.jl filename:
