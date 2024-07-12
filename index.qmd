@@ -30,18 +30,30 @@ execute:
     echo: true
 ---
 
-# What is an SDM?
+# What are Species Distribution Models?
+:::: {.columns}
 
-- "Just another word for a regression"
+::: {.column width="60%"}
+![](https://conservationbytes.com/wp-content/uploads/2020/07/sdm.png)
 
-- A type of regression, with:
-  - Spatial data
-  - Binary data (presence/absence or presence/background)
-  - Environmental predictor variables
+::: {style="font-size: 50%;"}
+From: conservationbytes.com
+:::
+:::
 
-- A field of research with:
-  - Common standards, e.g. ensemble modelling
-  - Recurring problems, e.g. spatial bias
+::: {.column width="40%"}
+- Use occurrence records and environmental variables
+- Predict where a species can live
+:::
+
+::::
+
+# What are SDMs?
+- The main way to understand how climate change will affect nature
+- A huge field of research with:
+  - Common standards
+  - Recurring problems
+  - Often-used data sources
 
 
 # Current tools for SDMs
@@ -65,12 +77,25 @@ execute:
   - Aims to make Julia machine learning tools accessible for SDM users
 
 # A typical SDM workflow
+:::: {.columns}
+
+::: {.column width="70%"}
 - Load environmental data
 - Load occurrence data
 - Data wrangling 
 - Fit a model ensemble
 - Evaluate the ensemble
 - Predict 
+:::
+
+::: {.column width="30%"}
+![](https://upload.wikimedia.org/wikipedia/commons/4/47/Tasmania_logging_08_Mighty_tree.jpg)
+
+_Eucalyptus regnans_
+
+:::
+
+::::
 
 # Environmental data
 
@@ -122,7 +147,6 @@ using SpeciesDistributionModels
 p_data = extract(bio_aus, occurrences; skipmissing = true)
 bg_data = bio_aus[bg_indices]
 data = sdmdata(p_data, bg_data; resampler = CV(nfolds = 3))
-data
 ```
 
 # Fitting an ensemble
@@ -137,24 +161,22 @@ models = (
 )
 
 ensemble = sdm(data, models)
-ensemble
 ```
 
 # Evaluating an ensemble
 ```{julia}
 import SpeciesDistributionModels as SDM
 ev = SDM.evaluate(ensemble; measures = (; auc, accuracy))
-ev
 ```
 
 # Predicting
 ```{julia}
 pred = SDM.predict(ensemble, bio_aus; reducer = mean)
-fig, ax, pl = plot(pred; colorrange = (0,1))
+plot(pred; colorrange = (0,1))
 ```
 
 # What is next for SDMs in Julia?
-- SpeciesDistributionModels.jl is very early stage
+- SpeciesDistributionModels.jl is early stage
 - We have:
   - Easy interfacing with many models through MLJ
   - Easy access to raster data and operations
