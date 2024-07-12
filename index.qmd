@@ -30,7 +30,7 @@ execute:
     echo: true
 ---
 
-# What are Species Distribution Models?
+## What are Species Distribution Models?
 :::: {.columns}
 
 ::: {.column width="60%"}
@@ -48,7 +48,7 @@ From: conservationbytes.com
 
 ::::
 
-- - -
+## What are Species Distribution Models?
 
 - The main way to understand how climate change will affect nature
 - A huge field of research with:
@@ -57,7 +57,7 @@ From: conservationbytes.com
   - Often-used data sources
 
 
-# Current tools for SDMs
+## Current tools for SDMs
 - Heavily reliant on R with dozens of R packages
 - Pros:
   - Very complete
@@ -68,7 +68,7 @@ From: conservationbytes.com
   - Not custumisable
   - Idiosyncratic syntax
 
-# Towards SDMs in Julia
+## Towards SDMs in Julia
 - JuliaGeo
   - E.g. Rasters.extract
 - Models
@@ -78,7 +78,7 @@ From: conservationbytes.com
   - Depends on MLJ and Rasters
   - Aims to make Julia machine learning tools accessible for SDM users
 
-# A typical SDM workflow
+## A typical SDM workflow
 :::: {.columns}
 
 ::: {.column width="70%"}
@@ -99,7 +99,7 @@ _Eucalyptus regnans_
 
 ::::
 
-# Environmental data
+## Environmental data
 
 ```{julia}
 #| echo: false
@@ -118,13 +118,13 @@ australia = subset(countries, :NAME => ByRow(==("Australia"))).geometry
 bio_aus = Rasters.trim(mask(bio; with = australia)[X = 110 .. 156, Y = -45 .. -10])
 ```
 
-# Environmental data
+## Environmental data
 ```{julia}
 using CairoMakie
 Rasters.rplot(bio_aus)
 ```
 
-# Occurrence data
+## Occurrence data
 ```{julia}
 using GBIF2, SpeciesDistributionModels
 sp = species_match("Eucalyptus regnans")
@@ -132,7 +132,7 @@ occurrences_raw = occurrence_search(sp; year = (1970,2000), country = "AU", hasC
 occurrences = thin(occurrences_raw.geometry, 5000)
 
 ```
-# Background points
+## Background points
 ```{julia}
 using StatsBase
 bg_indices = sample(findall(boolmask(bio_aus)), 500)
@@ -143,7 +143,7 @@ scatter!(ax, bg_points; color = :grey)
 fig
 ```
 
-# Handling data
+## Handling data
 ```{julia}
 using SpeciesDistributionModels
 p_data = extract(bio_aus, occurrences; skipmissing = true)
@@ -151,7 +151,7 @@ bg_data = bio_aus[bg_indices]
 data = sdmdata(p_data, bg_data; resampler = CV(nfolds = 3))
 ```
 
-# Fitting an ensemble
+## Fitting an ensemble
 ```{julia}
 using Maxnet: MaxnetBinaryClassifier
 using EvoTrees: EvoTreeClassifier
@@ -165,25 +165,25 @@ models = (
 ensemble = sdm(data, models)
 ```
 
-# Evaluating an ensemble
+## Evaluating an ensemble
 ```{julia}
 import SpeciesDistributionModels as SDM
 ev = SDM.evaluate(ensemble; measures = (; auc, accuracy))
 ```
 
-# Predicting
+## Predicting
 ```{julia}
 pred = SDM.predict(ensemble, bio_aus; reducer = mean)
 plot(pred; colorrange = (0,1))
 ```
 
-# Understanding the model
+## Understanding the model
 ```{julia}
 expl = SDM.explain(ensemble; method = ShapleyValues(8))
 interactive_response_curves(expl)
 ```
 
-# What is next for SDMs in Julia?
+## What is next for SDMs in Julia?
 - SpeciesDistributionModels.jl is early stage
 - We have:
   - Easy interfacing with many models through MLJ
