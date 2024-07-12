@@ -48,7 +48,8 @@ From: conservationbytes.com
 
 ::::
 
-# What are SDMs?
+- - -
+
 - The main way to understand how climate change will affect nature
 - A huge field of research with:
   - Common standards
@@ -65,13 +66,14 @@ From: conservationbytes.com
 - Cons:
   - Slow
   - Not custumisable
-  - Horrible syntax at times
+  - Idiosyncratic syntax
 
 # Towards SDMs in Julia
 - JuliaGeo
   - E.g. Rasters.extract
 - Models
   - E.g. Maxnet
+  - PRs to MLJ
 - SpeciesDistributionModels.jl
   - Depends on MLJ and Rasters
   - Aims to make Julia machine learning tools accessible for SDM users
@@ -113,7 +115,7 @@ using Rasters, RasterDataSources, ArchGDAL, NaturalEarth, DataFrames
 bio = RasterStack(WorldClim{BioClim}, (1,12))
 countries = naturalearth("ne_10m_admin_0_countries") |> DataFrame
 australia = subset(countries, :NAME => ByRow(==("Australia"))).geometry
-bio_aus = Rasters.trim(mask(bio; with = australia))
+bio_aus = Rasters.trim(mask(bio; with = australia)[X = 110 .. 156, Y = -45 .. -10])
 ```
 
 # Environmental data
@@ -173,6 +175,12 @@ ev = SDM.evaluate(ensemble; measures = (; auc, accuracy))
 ```{julia}
 pred = SDM.predict(ensemble, bio_aus; reducer = mean)
 plot(pred; colorrange = (0,1))
+```
+
+# Understanding the model
+```{julia}
+expl = SDM.explain(ensemble; method = ShapleyValues(8))
+interactive_response_curves(expl)
 ```
 
 # What is next for SDMs in Julia?
