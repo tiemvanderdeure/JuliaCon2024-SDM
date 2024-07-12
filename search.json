@@ -1,0 +1,107 @@
+[
+  {
+    "objectID": "index.html#what-are-species-distribution-models",
+    "href": "index.html#what-are-species-distribution-models",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "What are Species Distribution Models?",
+    "text": "What are Species Distribution Models?\n\n\n\n\nFrom: conservationbytes.com\n\n\n\nUse occurrence records and environmental variables\nPredict where a species can live"
+  },
+  {
+    "objectID": "index.html#what-are-species-distribution-models-1",
+    "href": "index.html#what-are-species-distribution-models-1",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "What are Species Distribution Models?",
+    "text": "What are Species Distribution Models?\n\nThe main way to understand how climate change will affect nature\nA huge field of research with:\n\nCommon standards\nRecurring problems\nOften-used data sources"
+  },
+  {
+    "objectID": "index.html#current-tools-for-sdms",
+    "href": "index.html#current-tools-for-sdms",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Current tools for SDMs",
+    "text": "Current tools for SDMs\n\nHeavily reliant on R with dozens of R packages\nPros:\n\nVery complete\nBeginner-friendly\nDocumented\n\nCons:\n\nSlow\nNot custumisable\nIdiosyncratic syntax"
+  },
+  {
+    "objectID": "index.html#towards-sdms-in-julia",
+    "href": "index.html#towards-sdms-in-julia",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Towards SDMs in Julia",
+    "text": "Towards SDMs in Julia\n\nJuliaGeo\n\nE.g. Rasters.extract\n\nModels\n\nE.g. Maxnet\nPRs to MLJ\n\nSpeciesDistributionModels.jl\n\nDepends on MLJ and Rasters\nAims to make Julia machine learning tools accessible for SDM users"
+  },
+  {
+    "objectID": "index.html#a-typical-sdm-workflow",
+    "href": "index.html#a-typical-sdm-workflow",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "A typical SDM workflow",
+    "text": "A typical SDM workflow\n\n\n\nLoad environmental data\nLoad occurrence data\nData wrangling\nFit a model ensemble\nEvaluate the ensemble\nPredict\n\n\n\nEucalyptus regnans"
+  },
+  {
+    "objectID": "index.html#environmental-data",
+    "href": "index.html#environmental-data",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Environmental data",
+    "text": "Environmental data\n\n\n\nusing Rasters, RasterDataSources, ArchGDAL, NaturalEarth, DataFrames\nbio = RasterStack(WorldClim{BioClim}, (1,12))\ncountries = naturalearth(\"ne_10m_admin_0_countries\") |&gt; DataFrame\naustralia = subset(countries, :NAME =&gt; ByRow(==(\"Australia\"))).geometry\nbio_aus = Rasters.trim(mask(bio; with = australia)[X = 110 .. 156, Y = -45 .. -10])\n\n╭─────────────────────╮\n│ 244×198 RasterStack │\n├─────────────────────┴────────────────────────────────────────────────── dims ┐\n  ↓ X Projected{Float64} LinRange{Float64}(113.00000000000001, 153.49999999999997, 244) ForwardOrdered Regular Intervals{Start},\n  → Y Projected{Float64} LinRange{Float64}(-10.833333333333337, -43.666666666666664, 198) ReverseOrdered Regular Intervals{Start}\n├────────────────────────────────────────────────────────────────────── layers ┤\n  :bio1  eltype: Float32 dims: X, Y size: 244×198\n  :bio12 eltype: Float32 dims: X, Y size: 244×198\n├────────────────────────────────────────────────────────────────────── raster ┤\n  extent: Extent(X = (113.00000000000001, 153.66666666666663), Y = (-43.666666666666664, -10.666666666666671))\n  missingval: -3.4f38\n  crs: GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST],AUTHORITY[\"EPSG\",\"4326\"]]\n└──────────────────────────────────────────────────────────────────────────────┘"
+  },
+  {
+    "objectID": "index.html#environmental-data-1",
+    "href": "index.html#environmental-data-1",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Environmental data",
+    "text": "Environmental data\n\nusing CairoMakie\nRasters.rplot(bio_aus)"
+  },
+  {
+    "objectID": "index.html#occurrence-data",
+    "href": "index.html#occurrence-data",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Occurrence data",
+    "text": "Occurrence data\n\nusing GBIF2, SpeciesDistributionModels\nsp = species_match(\"Eucalyptus regnans\")\noccurrences_raw = occurrence_search(sp; year = (1970,2000), country = \"AU\", hasCoordinate = true, limit = 2000)\noccurrences = thin(occurrences_raw.geometry, 5000)\n\n220-element Vector{Tuple{Real, Float64}}:\n (145.98298, -38.33349)\n (146.35, -37.36667)\n (146.24194, -38.52083)\n (146.3225, -38.48833)\n (146.45583, -38.46889)\n (146.741424, -42.886531)\n (145.61944, -37.71861)\n (146.502222, -42.360093)\n (143.9438, -38.55351)\n (146.64194, -38.38778)\n ⋮\n (145.96639, -37.43278)\n (147.983333, -41.433333)\n (147.9333, -37.4833)\n (148.36806, -37.38167)\n (146.483333, -42.55)\n (146.95, -43.283333)\n (147.966667, -42.45)\n (147.5, -37.4)\n (147.15, -42.983333)"
+  },
+  {
+    "objectID": "index.html#background-points",
+    "href": "index.html#background-points",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Background points",
+    "text": "Background points\n\nusing StatsBase\nbg_indices = sample(findall(boolmask(bio_aus)), 500)\nbg_points = DimPoints(bio_aus)[bg_indices]\nfig, ax, pl = plot(bio_aus.bio1)\nscatter!(ax, occurrences; color = :red)\nscatter!(ax, bg_points; color = :grey)\nfig"
+  },
+  {
+    "objectID": "index.html#handling-data",
+    "href": "index.html#handling-data",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Handling data",
+    "text": "Handling data\n\nusing SpeciesDistributionModels\np_data = extract(bio_aus, occurrences; skipmissing = true)\nbg_data = bio_aus[bg_indices]\ndata = sdmdata(p_data, bg_data; resampler = CV(nfolds = 3))\n\nSDMdata object with  presence points and  absence points. \n \nResampling: \nData is divided into 3 folds using resampling strategy CV(nfolds = 3, …).\n┌──────┬─────────┬────────┐\n│ fold │ # train │ # test │\n├──────┼─────────┼────────┤\n│    1 │     479 │    240 │\n│    2 │     479 │    240 │\n│    3 │     480 │    239 │\n└──────┴─────────┴────────┘\nPredictor variables: \n┌───────┬────────────┬─────────┐\n│ names │ scitypes   │ types   │\n├───────┼────────────┼─────────┤\n│ bio1  │ Continuous │ Float32 │\n│ bio12 │ Continuous │ Float32 │\n└───────┴────────────┴─────────┘\nDoes not contain geometry data"
+  },
+  {
+    "objectID": "index.html#fitting-an-ensemble",
+    "href": "index.html#fitting-an-ensemble",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Fitting an ensemble",
+    "text": "Fitting an ensemble\n\nusing Maxnet: MaxnetBinaryClassifier\nusing EvoTrees: EvoTreeClassifier\nusing MLJGLMInterface: LinearBinaryClassifier\nmodels = (\n  maxnet = MaxnetBinaryClassifier(),\n  brt = EvoTreeClassifier(),\n  glm = LinearBinaryClassifier()\n)\n\nensemble = sdm(data, models)\n\ntrained SDMensemble, containing 9 SDMmachines across 3 SDMgroups \n\nUses the following models:\nmaxnet =&gt; MaxnetBinaryClassifier. \nbrt =&gt; EvoTreeClassifier. \nglm =&gt; LinearBinaryClassifier."
+  },
+  {
+    "objectID": "index.html#evaluating-an-ensemble",
+    "href": "index.html#evaluating-an-ensemble",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Evaluating an ensemble",
+    "text": "Evaluating an ensemble\n\nimport SpeciesDistributionModels as SDM\nev = SDM.evaluate(ensemble; measures = (; auc, accuracy))\n\nSpeciesDistributionModels.SDMensembleEvaluation with 2 performance measures\ntrain\n┌──────────┬──────────┬──────────┐\n│    model │      auc │ accuracy │\n│      Any │  Float64 │  Float64 │\n├──────────┼──────────┼──────────┤\n│   maxnet │ 0.992211 │  0.97009 │\n│      brt │ 0.999617 │ 0.990956 │\n│      glm │ 0.985032 │ 0.964527 │\n│ ensemble │ 0.998119 │ 0.988174 │\n└──────────┴──────────┴──────────┘\ntest\n┌──────────┬──────────┬──────────┐\n│    model │      auc │ accuracy │\n│      Any │  Float64 │  Float64 │\n├──────────┼──────────┼──────────┤\n│   maxnet │ 0.989113 │ 0.970758 │\n│      brt │ 0.979693 │ 0.958252 │\n│      glm │ 0.985132 │  0.96798 │\n│ ensemble │ 0.986692 │ 0.962424 │\n└──────────┴──────────┴──────────┘"
+  },
+  {
+    "objectID": "index.html#predicting",
+    "href": "index.html#predicting",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Predicting",
+    "text": "Predicting\n\npred = SDM.predict(ensemble, bio_aus; reducer = mean)\nplot(pred; colorrange = (0,1))"
+  },
+  {
+    "objectID": "index.html#understanding-the-model",
+    "href": "index.html#understanding-the-model",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "Understanding the model",
+    "text": "Understanding the model\n\nexpl = SDM.explain(ensemble; method = ShapleyValues(8))\ninteractive_response_curves(expl)"
+  },
+  {
+    "objectID": "index.html#what-is-next-for-sdms-in-julia",
+    "href": "index.html#what-is-next-for-sdms-in-julia",
+    "title": "SpeciesDistributionModels.jl",
+    "section": "What is next for SDMs in Julia?",
+    "text": "What is next for SDMs in Julia?\n\nSpeciesDistributionModels.jl is early stage\nWe have:\n\nEasy interfacing with many models through MLJ\nEasy access to raster data and operations\n\nWe need:\n\nDocumentation and tutorials\nAll commonly used tools (e.g. GAMs)\nVery intuitive and consistent syntax"
+  }
+]
